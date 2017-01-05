@@ -1,11 +1,9 @@
 package ua.com.codespace.model;
 
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -23,33 +21,29 @@ public class User {
     private String username;
 
     @NotNull
+    private String password;
+
+    @NotNull
     @org.hibernate.validator.constraints.Email
     private String email;
 
+    @OneToMany(mappedBy = "userProduct")
+    private Set<Product> products = new HashSet<>();
 
-    @NotNull
-    private String password;
+    @OneToMany(mappedBy = "userBid")
+    private  Set<Bid> bids = new HashSet<>();
 
-    @Column(name = "photo_url")
-    @org.hibernate.validator.constraints.URL
-    private String photoUrl;
-
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "friends",
-            joinColumns = {@JoinColumn(name = "user_id", referencedColumnName = "id")},
-            inverseJoinColumns = {@JoinColumn(name = "friend_id", referencedColumnName = "id")}
-    )
-    @JsonIgnore
-    private Set<User> friends;
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     public User() {
     }
 
     public User(String username, String email, String password) {
         this.username = username;
-        this.email = email;
         this.password = password;
+        this.email = email;
     }
 
     public final Long getId() {
@@ -84,22 +78,6 @@ public class User {
         this.password = password;
     }
 
-    public String getPhotoUrl() {
-        return photoUrl;
-    }
-
-    public void setPhotoUrl(String photoUrl) {
-        this.photoUrl = photoUrl;
-    }
-
-    public Set<User> getFriends() {
-        return friends;
-    }
-
-    public void setFriends(Set<User> friends) {
-        this.friends = friends;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -109,7 +87,6 @@ public class User {
 
         if (id != null ? !id.equals(user.id) : user.id != null) return false;
         return email.equals(user.email);
-
     }
 
     @Override
