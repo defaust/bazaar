@@ -1,7 +1,6 @@
-package ua.com.codespace.config.JpaConfig;
+package ua.com.codespace.config;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
-import ua.com.codespace.config.TransactionConfig;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,17 +9,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.orm.jpa.JpaVendorAdapter;
-import org.springframework.orm.jpa.LocalEntityManagerFactoryBean;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.Database;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+
 import javax.sql.DataSource;
 
 @Configuration
-@Profile("dev")
-@EnableJpaRepositories("ua.com.codespace.repository")
+@EnableJpaRepositories("com.ua.codespace.repository")
 @Import(TransactionConfig.class)
-public class Dev {
+public class JpaConfig {
 
     //todo: don't forget to set your database properties in the application.properties file
     @Value("${spring.data.db.url}")
@@ -36,7 +37,18 @@ public class Dev {
     @Value("${hibernate.hbm2ddl.auto}")
     private String hbm2dll;
 
+
     @Bean
+    @Profile("test")
+    DataSource testDataSource() {
+        return new EmbeddedDatabaseBuilder()
+                .setType(EmbeddedDatabaseType.H2)
+                .setName("bambooTestDB")
+                .build();
+    }
+
+    @Bean
+    @Profile("dev")
     DataSource dataSource() {
         MysqlDataSource dataSource = new MysqlDataSource();
         dataSource.setURL(url);
@@ -45,14 +57,14 @@ public class Dev {
         return dataSource;
     }
 
-    //Bla bla bla
-
     @Bean
+    @Profile({"stage", "prod"})
     DataSource pooledDataSource(HikariConfig config) {
         return new HikariDataSource(config);
     }
 
     @Bean
+    @Profile({"stage", "prod"})
     HikariConfig hikariConfig() {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl(url);
@@ -66,8 +78,21 @@ public class Dev {
         return hikariConfig;
     }
 
+    @Bean
+    @Profile("test")
+    JpaVendorAdapter testJpaVendorAdapter() {
+        HibernateJpaVendorAdapter adapter = new HibernateJpaVendorAdapter();
+        adapter.setDatabase(Database.H2);
+        adapter.setShowSql(true);
+
+        adapter.setGenerateDdl(true);
+
+        adapter.setDatabasePlatform("org.hibernate.dialect.H2Dialect");
+        return adapter;
+    }
 
     @Bean
+    @Profile({"dev", "stage", "prod"})
     JpaVendorAdapter jpaVendorAdapter() {
         HibernateJpaVendorAdapter adapter = new HibernateJpaVendorAdapter();
         adapter.setDatabase(Database.MYSQL);
@@ -79,11 +104,26 @@ public class Dev {
         return adapter;
     }
 
-    // todo: use this EMF if you want to configure it with /META-INF/persistence.xml
     @Bean("entityManagerFactory")
+    LocalContainerEntityManagerFactoryBean localContainerEMF(DataSource dataSource, JpaVendorAdapter jpaVendorAdapter) {
+        LocalContainerEntityManagerFactoryBean lcmfb = new LocalContainerEntityManagerFactoryBean();
+        lcmfb.setDataSource(dataSource);
+        lcmfb.setJpaVendorAdapter(jpaVendorAdapter);
+        lcmfb.setPersistenceUnitName("bamboo");//todo: you can rename persistent unit
+        lcmfb.setPackagesToScan("com.ua.codespace.model");
+
+//        lcmfb.getJpaPropertyMap().put(org.hibernate.cfg.Environment.HBM2DDL_AUTO, hbm2dll);
+
+        return lcmfb;
+    }
+
+    // todo: use this EMF if you want to configure it with /META-INF/persistence.xml
+    /*@Bean("entityManagerFactory")
     public LocalEntityManagerFactoryBean entityManagerFactoryBean() {
         LocalEntityManagerFactoryBean emfb = new LocalEntityManagerFactoryBean();
-        emfb.setPersistenceUnitName("PersistenceUnit");
+        emfb.setPersistenceUnitName("BambooPersistenceUnit");
         return emfb;
-    }
+    }*/
+
 }
+

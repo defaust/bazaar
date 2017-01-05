@@ -1,7 +1,5 @@
 package ua.com.codespace.config;
 
-import ua.com.codespace.config.JpaConfig.Test;
-import ua.com.codespace.config.JpaConfig.Dev;
 import org.springframework.context.annotation.*;
 import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -12,6 +10,6 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
                 @Filter(type = FilterType.ANNOTATION, value = EnableWebMvc.class)
         })
 @PropertySource("classpath:/application.properties")
-@Import({Test.class, Dev.class})
+@Import(JpaConfig.class)
 public class RootConfig {
 }
